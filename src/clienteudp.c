@@ -13,11 +13,13 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <string.h> /* memset() */
-#include <sys/time.h> /* select() */ 
+#include <string.h>   /* memset() */
+#include <sys/time.h> /* select() */
+#include <stdlib.h>
 
 #define REMOTE_SERVER_PORT 1500
 #define MAX_MSG 100
+#define CRAWLER_SERVER_IP "127.0.0.1"
 
 /*
   argc = número de argumentos passsados na linha de comando
@@ -25,65 +27,77 @@
   argv[1] = ip do servidor
   argv[2] = mensagem
 */
-int main(int argc, char *argv[]) {
-  
-  int sd, rc, i;
-  struct sockaddr_in cliAddr, remoteServAddr;
-  struct hostent *h;
+int main()
+{
+  int server, portIsBind, messageIsSended, i;
+  struct sockaddr_in clientAddr, remoteServerAddr;
+  struct hostent *host;
 
-  /* check command line args */
-  if(argc<3) {
-    printf("usage : %s <server> <data1> ... <dataN> \n", argv[0]);
-    //exit(1);
+  clientAddr.sin_family = AF_INET;                // Família de protocolo - IPv4
+  clientAddr.sin_addr.s_addr = htonl(INADDR_ANY); // Edereço local utilizado pelo socket convertido pelo htonl
+  clientAddr.sin_port = htons(0);                 // Porta local utilizada pelo socket convertida pelo htons
+
+  server = socket(AF_INET, SOCK_DGRAM, 0); // Cria um socket UDP
+  if (server < 0)
+  {
+    printf("Cannot open socket\n");
+    exit(1);
+  }
+
+  // Bind a port number to the socket
+  portIsBind = bind(
+    server,
+    (struct sockaddr *)&clientAddr,
+    sizeof(clientAddr)
+  );
+
+  if (portIsBind < 0)
+  {
+    printf("Cannot bind port\n");
+    exit(1);
   }
 
   /* get server IP address (no check if input is IP address or DNS name */
-  h = gethostbyname(argv[1]);
-  if(h==NULL) {
-    printf("%s: unknown host '%s' \n", argv[0], argv[1]);
-    //exit(1);
+  host = gethostbyname(CRAWLER_SERVER_IP);
+  if (host == NULL)
+  {
+    printf("Unknown host '%s'\n", CRAWLER_SERVER_IP);
+    exit(1);
   }
 
-  printf("%s: sending data to '%s' (IP : %s) \n", argv[0], h->h_name,
-	 inet_ntoa(*(struct in_addr *)h->h_addr_list[0]));
+  // printf("%s: sending data to '%s' (IP : %s) \n", argv[0], h->h_name,
+  //        inet_ntoa(*(struct in_addr *)h->h_addr_list[0]));
 
-  remoteServAddr.sin_family = h->h_addrtype;
-  memcpy((char *) &remoteServAddr.sin_addr.s_addr, 
-	 h->h_addr_list[0], h->h_length);
-  remoteServAddr.sin_port = htons(REMOTE_SERVER_PORT);
-
-  /* socket creation */
-  sd = socket(AF_INET, SOCK_DGRAM, 0); // Cria um socket UDP
-  if(sd<0) {
-    printf("%s: cannot open socket \n",argv[0]);
-    //exit(1);
-  }
+  remoteServerAddr.sin_family = host->h_addrtype;
+  memcpy(
+    (char *)&remoteServerAddr.sin_addr.s_addr,
+    host->h_addr_list[0],
+    host->h_length
+  );
   
-  /* bind any port */
-  cliAddr.sin_family = AF_INET; // Família de protocolo - IPv4
-  cliAddr.sin_addr.s_addr = htonl(INADDR_ANY); // Edereço local utilizado pelo socket convertido pelo htonl
-  cliAddr.sin_port = htons(0); // Porta local utilizada pelo socket convertida pelo htons
-  
-  rc = bind(sd, (struct sockaddr *) &cliAddr, sizeof(cliAddr));
-  if(rc<0) {
-    printf("%s: cannot bind port\n", argv[0]);
-    //exit(1);
-  }
+  remoteServerAddr.sin_port = htons(REMOTE_SERVER_PORT);
 
+  // O usuário insere o arquivo desejado
+  printf("Digite o nome do arquivo: ");
+  char fileName[100];
+  scanf("%s", fileName);
 
   /* send data */
-  for(i=2;i<argc;i++) {
-    rc = sendto(sd, argv[i], strlen(argv[i])+1, 0, (struct sockaddr *) &remoteServAddr, sizeof(remoteServAddr));
+  messageIsSended = sendto(
+    server,
+    fileName,
+    strlen(fileName) + 1,
+    0,
+    (struct sockaddr *)&remoteServerAddr,
+    sizeof(remoteServerAddr)
+  );
 
-    if(rc<0) {
-      printf("%s: cannot send data %d \n",argv[0],i-1);
-      close(sd);
-      //exit(1);
-    }
-
+  if (messageIsSended < 0)
+  {
+    printf("Cannot send data %d \n", i - 1);
+    close(server);
+    exit(1);
   }
-  
-  return 1;
 
+  return 0;
 }
-

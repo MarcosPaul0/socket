@@ -14,65 +14,84 @@
 #include <stdio.h>
 #include <unistd.h> /* close() */
 #include <string.h> /* memset() */
+#include <stdlib.h>
 
 #define LOCAL_SERVER_PORT 1500
 #define MAX_MSG 100
 
-int main(int argc, char *argv[]) {
-  
-  int sd, rc, n, cliLen;
+int main(int argc, char *argv[])
+{
+
+  int server, portIsBind, messageWasReceived, cliLen;
   struct sockaddr_in cliAddr, servAddr;
-  char msg[MAX_MSG];
+  char message[MAX_MSG];
 
-  /* socket creation */
-  sd=socket(AF_INET, SOCK_DGRAM, 0);
-  if(sd<0) {
-    printf("%s: cannot open socket \n",argv[0]);
-    //exit(1);
-  }
-
-  /* bind local server port */
   servAddr.sin_family = AF_INET;
   servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
   servAddr.sin_port = htons(LOCAL_SERVER_PORT);
-  rc = bind (sd, (struct sockaddr *) &servAddr,sizeof(servAddr));
-  if(rc<0) {
-    printf("%s: cannot bind port number %d \n", 
-	   argv[0], LOCAL_SERVER_PORT);
-    //exit(1);
+
+  /* socket creation */
+  server = socket(AF_INET, SOCK_DGRAM, 0); // Cria um socket UDP
+
+  if (server < 0)
+  {
+    printf("%s: cannot open socket \n", argv[0]);
+    exit(1);
   }
 
-  printf("%s: waiting for data on port UDP %u\n", 
-	   argv[0],LOCAL_SERVER_PORT);
+  /* bind local server port */
+
+  portIsBind = bind( // associa porta ao socket
+    server,
+    (struct sockaddr *)&servAddr,
+    sizeof(servAddr)
+  );
+
+  if (portIsBind < 0)
+  {
+    printf(
+      "Cannot bind port number %d \n",
+      LOCAL_SERVER_PORT
+    );
+    exit(1);
+  }
+
+  printf(
+    "Waiting for data on port UDP %u\n",
+    LOCAL_SERVER_PORT
+  );
 
   /* server infinite loop */
-  while(1) {
-    
+  while (1)
+  {
     /* init buffer */
-    memset(msg,0x0,MAX_MSG);
-
+    memset(message, 0x0, MAX_MSG);
 
     /* receive message */
     cliLen = sizeof(cliAddr);
-    n = recvfrom(sd, msg, MAX_MSG, 0, (struct sockaddr *) &cliAddr, &cliLen);
+    messageWasReceived = recvfrom(
+      server,
+      message,
+      MAX_MSG,
+      0,
+      (struct sockaddr *)&cliAddr,
+      &cliLen
+    );
 
-    if(n<0) {
-      printf("%s: cannot receive data \n",argv[0]);
+    if (messageWasReceived < 0)
+    {
+      printf("Cannot receive data \n");
       continue; // reestarta o loop
     }
-      
+
     /* print received message */
     printf(
-      "%s: from %s:UDP%u : %s \n", 
-	    argv[0],
+      "From %s:UDP%u : %s \n",
       inet_ntoa(cliAddr.sin_addr),
-	    ntohs(cliAddr.sin_port),
-      msg
+      ntohs(cliAddr.sin_port),
+      message
     );
-    
-  }/* end of server infinite loop */
+  } /* end of server infinite loop */
 
-return 0;
-
+  return 0;
 }
-
