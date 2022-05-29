@@ -37,7 +37,7 @@ int main()
   server = socket(AF_INET, SOCK_DGRAM, 0); // Cria um socket UDP
   if (server < 0)
   {
-    printf("Cannot open socket\n");
+    fprintf(stderr, "Cannot open socket\n");
     exit(1);
   }
 
@@ -50,7 +50,7 @@ int main()
 
   if (portIsBind < 0)
   {
-    printf("Cannot bind port\n");
+    fprintf(stderr, "Cannot bind port\n");
     exit(1);
   }
 
@@ -58,7 +58,7 @@ int main()
   host = gethostbyname(TRACKER_SERVER_IP);
   if (host == NULL)
   {
-    printf("Unknown host '%s'\n", TRACKER_SERVER_IP);
+    fprintf(stderr, "Unknown host '%s'\n", TRACKER_SERVER_IP);
     exit(1);
   }
 
@@ -75,11 +75,11 @@ int main()
   remoteServerAddr.sin_port = htons(REMOTE_SERVER_PORT);
 
   // O usuário insere o arquivo desejado
-  printf("Digite o nome do arquivo: ");
+  fprintf(stderr, "Digite o nome do arquivo: ");
   char fileName[100];
   scanf("%s", fileName);
 
-  /* send data */
+  // Envia o nome do arquivo requerido
   messageIsSended = sendto(
     server,
     fileName,
@@ -91,10 +91,40 @@ int main()
 
   if (messageIsSended < 0)
   {
-    printf("Cannot send data %d \n", i - 1);
+    fprintf(stderr, "Cannot send data %d \n", i - 1);
     close(server);
     exit(1);
   }
+
+  // Recebe o ip do client que possui o arquivo
+  char providerUserIp[15];
+  int providerUserIpSize, providerUserIpWasReceived;
+
+  memset(providerUserIp, 0x0, 15);
+
+  providerUserIpSize = sizeof(remoteServerAddr);
+  providerUserIpWasReceived = recvfrom(
+    server,
+    providerUserIp,
+    MAX_MSG,
+    0,
+    (struct sockaddr *)&remoteServerAddr,
+    &providerUserIpSize
+  );
+
+  if (providerUserIpWasReceived < 0)
+  {
+    fprintf(stderr, "Cannot receive data\n");
+  }
+
+  if (strcmp(providerUserIp, "") == 0)
+  {
+    fprintf(stderr, "File does not exists in our database\n");
+    close(server);
+    exit(1);
+  }
+
+  fprintf(stderr, "O arquivo %s está disponível no cliente %s\n", fileName, providerUserIp);
 
   return 0;
 }
