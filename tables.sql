@@ -1,5 +1,7 @@
-CREATE DATABASE IF NOT EXISTS tracker_server;
+-- Criação do banco de dados do servidor rastreador
+CREATE DATABASE tracker_server;
 
+-- Cria as tabelas do servidor rastreador
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS users (
@@ -24,8 +26,7 @@ CREATE TABLE IF NOT EXISTS user_file (
   UNIQUE (user_id, file_id)
 );
 
--- Para testes
-
+-- Para testes (O banco precisa estar vazio)
 insert into users (ip) values ('127.0.0.0');
 
 insert into files (name) values ('test.txt');
