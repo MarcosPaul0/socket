@@ -1,7 +1,4 @@
 /*
-  Instruções para compilação e execução
-  Disciplina COM240 - Redes de Computadores
-  Professor Bruno Guazzelli Batista
   Compilar - gcc clienteudp.c -o clienteudp
   Executar - ./clienteudp 127.0.0.1 mensagem
 */
@@ -19,7 +16,7 @@
 
 #define REMOTE_SERVER_PORT 1500
 #define MAX_MSG 100
-#define CRAWLER_SERVER_IP "127.0.0.1"
+#define TRACKER_SERVER_IP "127.0.0.1"
 
 /*
   argc = número de argumentos passsados na linha de comando
@@ -58,10 +55,10 @@ int main()
   }
 
   /* get server IP address (no check if input is IP address or DNS name */
-  host = gethostbyname(CRAWLER_SERVER_IP);
+  host = gethostbyname(TRACKER_SERVER_IP);
   if (host == NULL)
   {
-    printf("Unknown host '%s'\n", CRAWLER_SERVER_IP);
+    printf("Unknown host '%s'\n", TRACKER_SERVER_IP);
     exit(1);
   }
 
