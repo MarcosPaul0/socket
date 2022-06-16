@@ -125,7 +125,7 @@ int main()
           (struct sockaddr *)&clientAddr,
           sizeof(clientAddr));
 
-      printf( "Enviado %d bytes\n", strlen(fileBuffer));
+      printf( "Enviado %d bytes \n", strlen(fileBuffer));
       sleep(0.2);
     }
 
