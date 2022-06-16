@@ -33,8 +33,8 @@ int main()
 
   if (server < 0)
   {
-    fprintf(
-        stderr,
+    printf(
+        
         "%s: cannot open socket \n");
     exit(1);
   }
@@ -48,15 +48,15 @@ int main()
 
   if (portIsBind < 0)
   {
-    fprintf(
-        stderr,
-        "Cannot bind port number %d \n",
+    printf(
+        
+        "Cannot bind port number %u\n",
         PROVIDER_PORT);
     exit(1);
   }
 
-  fprintf(
-      stderr,
+  printf(
+      
       "Waiting for data on port UDP %u\n",
       PROVIDER_PORT);
 
@@ -81,15 +81,15 @@ int main()
 
     if (fileNameWasReceived < 0)
     {
-      fprintf(stderr, "Cannot receive data \n");
+      printf( "Cannot receive data \n");
       continue; // reestarta o loop
     }
 
-    fprintf(stderr, "Received: %s\n", fileName);
+    printf( "Received: %s\n", fileName);
 
     // Abre e lê o arquivo
-    char *basePath = "./files/";
-    char *filePath = malloc(strlen(basePath) + strlen(fileName) + 1);
+    char basePath[9] = "./files/";
+    char *filePath = malloc(strlen(basePath) + strlen(fileName));
     strcpy(filePath, basePath);
     strcat(filePath, fileName);
 
@@ -97,7 +97,7 @@ int main()
 
     if (originFile == NULL)
     {
-      fprintf(stderr, "File transfer failed\n");
+      printf( "File transfer failed\n");
       exit(EXIT_FAILURE);
     } // exit(EXIT_FAILURE);
 
@@ -108,37 +108,38 @@ int main()
     char fileBuffer[originFileLength];
     fread(fileBuffer, originFileLength, 1, originFile);
 
-    memset(fileName, 0x0, MAX_FILENAME_LENGTH);
+    // memset(fileName, 0x0, MAX_FILENAME_LENGTH);
     fclose(originFile);
+
+    memset(fileName, 0x0, MAX_FILENAME_LENGTH);
+    memset(filePath, 0x0, strlen(filePath));
 
     // Envia o arquivo
     for (int i = 0; i < originFileLength; i += MAX_FILE_BUFFER)
     {
-      char *fileFragment = malloc(MAX_FILE_BUFFER);
-      memcpy(fileFragment, fileBuffer + i, MAX_FILE_BUFFER);
-
       sendto(
           server,
-          fileFragment,
-          MAX_FILE_BUFFER,
+          fileBuffer + i,
+          MAX_FILE_BUFFER < originFileLength - i ? MAX_FILE_BUFFER : originFileLength - i,
           0,
           (struct sockaddr *)&clientAddr,
           sizeof(clientAddr));
 
-      // Limpa a variavel fileFragment
-      fprintf(stderr, "Enviado %d bytes\n", strlen(fileFragment));
-      memset(fileFragment, 0x0, MAX_FILE_BUFFER);
+      printf( "Enviado %d bytes\n", strlen(fileBuffer));
+      sleep(0.2);
     }
 
     sendto(
         server,
         "END",
-        strlen("END") + 1,
+        strlen("END"),
         0,
         (struct sockaddr *)&clientAddr,
         sizeof(clientAddr));
 
-    fprintf(stderr, "File sent to client\n");
+    printf( "File sent to client\n");
+
+
   } /* end of server infinite loop */
 
   return 0;
