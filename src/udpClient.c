@@ -1,5 +1,5 @@
 /*
-  Compilar - gcc src/udpClient.c -o udpClient
+  Compilar - gcc src/udpClient.c -o udpClient -lm
   Executar - ./udpClient
 */
 
@@ -13,6 +13,9 @@
 #include <string.h>   /* memset() */
 #include <sys/time.h> /* select() */
 #include <stdlib.h>
+#include <math.h>
+
+#include "utilities.h"
 
 #define MAX_FILENAME_LENGTH 100
 #define MAX_PROVIDER_IP_LENGTH 16
@@ -55,6 +58,8 @@ int main()
     fprintf(stderr, "Cannot bind port\n");
     exit(1);
   }
+
+  fprintf(stderr, "Running on port %d\n", CLIENT_PORT);
 
   struct sockaddr_in trackerServerAddr;
   struct hostent *trackerHost;
@@ -164,6 +169,19 @@ int main()
       continue;
     }
 
+    // Recebe o tamanho do arquivo
+    int fileSize;
+
+    recvfrom(
+        server,
+        &fileSize,
+        sizeof(fileSize),
+        0,
+        (struct sockaddr *)&providerAddr,
+        &trackerSize);
+
+    fprintf(stderr, "Arquivo %s com tamanho %d\n", fileName, fileSize);
+
     fprintf(stderr, "\n\nSalvando arquivo %s ...\n\n", fileName);
 
     char *basePath = "./tmp/";
@@ -176,35 +194,101 @@ int main()
 
     FILE *destinyFile = fopen(filePath, "wb");
 
-    // // Recebe o buffer do arquivo
-    char fileBuffer[MAX_FILE_BUFFER];
-    memset(fileBuffer, 0x0, MAX_FILE_BUFFER);
+    if (destinyFile == NULL)
+    {
+      fprintf(stderr, "Cannot open file %s\n", filePath);
+      continue;
+    }
 
     int providerSize = sizeof(providerAddr);
-    while (1)
+
+    int packetQuantity = fileSize / MAX_FILE_BUFFER;
+    int lastPacketSize = fileSize % MAX_FILE_BUFFER;
+
+    printf("Quantidade %d\n", packetQuantity);
+    printf("Tamanho %d\n", lastPacketSize);
+
+    //  Armazena o ultimo numero de sequencia
+    int lastSequenceNumber = -1;
+
+    for (int i = 0; 1; i++)
     {
-      // receive
+      struct package package;
+
+      // Recebe o pacote
       recvfrom(
           server,
-          fileBuffer,
-          MAX_FILE_BUFFER,
+          &package,
+          sizeof(package),
           0,
           (struct sockaddr *)&providerAddr,
           &providerSize);
 
-      fprintf(stderr, "Recebido %d bytes\n", strlen(fileBuffer));
-
-      if (strcmp(fileBuffer, "END") == 0)
+      // Se for o ultimo pacote
+      if (strcmp(package.data, "END") == 0)
       {
         break;
       }
 
-      // escreve o arquivo
-      fwrite(fileBuffer, sizeof(char), strlen(fileBuffer), destinyFile);
+      //  Verifica a quantidade de caracteres
+      int sequenceNumberSize = package.sequenceNumber < 10 ? 1 : floor(log10(package.sequenceNumber)) + 1;
 
-      // limpa o buffer
-      memset(fileBuffer, 0x0, MAX_FILE_BUFFER);
+      //  Prepara a resposta
+      struct package response;
+      response.dataSize = sequenceNumberSize + 4;
 
+      //  Verifica o checksum
+      int checkSum = checkSumInHex(package.data, package.dataSize);
+
+      if (checkSum + package.checkSum != 0xFF)
+      {
+        // printf("Checksum invalido\n");
+
+        //  Envia o NCK
+        memset(response.data, 0x0, MAX_FILE_BUFFER);
+        memcpy(response.data, "NCK ", 4);
+        sprintf(response.data + 4, "%d", package.sequenceNumber);
+
+        sendto(
+            server,
+            &response,
+            sizeof(response),
+            0,
+            (struct sockaddr *)&providerAddr,
+            sizeof(providerAddr));
+
+        continue;
+      }
+
+      // printf("Checksum valido\n");
+
+      //  Envia o ACK
+      memset(response.data, 0x0, MAX_FILE_BUFFER);
+      memcpy(response.data, "ACK ", 4);
+
+      sprintf(response.data + 4, "%d", package.sequenceNumber);
+
+      sendto(
+          server,
+          &response,
+          sizeof(response),
+          0,
+          (struct sockaddr *)&providerAddr,
+          sizeof(providerAddr));
+
+      //  Verifica se o numero de sequencia é o mesmo
+      if (lastSequenceNumber == package.sequenceNumber)
+      {
+        printf("Numero de sequencia invalido\n");
+        continue;
+      }
+
+      lastSequenceNumber = package.sequenceNumber;
+
+      //  Grava o pacote no arquivo
+      fwrite(package.data, 1, package.dataSize, destinyFile);
+
+      fprintf(stderr, "Recebido %d bytes\n\n", package.dataSize);
 
       // if (destinyFile == NULL)
       // {
@@ -226,7 +310,7 @@ int main()
 
     fclose(destinyFile);
 
-    fprintf(stderr, "Arquivo recebido com sucesso %s\n", fileBuffer);
+    fprintf(stderr, "Arquivo recebido com sucesso!\n");
 
     // int fileBufferWasReceived = recvfrom(
     //     server,
