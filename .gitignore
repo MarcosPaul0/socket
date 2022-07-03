@@ -2,3 +2,8 @@
 udpServer
 udpClient
 udpProvider
+server.sh
+client.sh
+provider.sh
+/tmp/*
+/files/*

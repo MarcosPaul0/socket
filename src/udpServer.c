@@ -1,5 +1,5 @@
 /*
-  Compilar - gcc src/udpServer.c src/db.c src/communication.c -o servidorudp -lpq
+  Compilar - gcc src/udpServer.c src/db.c src/communication.c -o udpServer -lpq
   Executar - ./udpServer
 */
 
@@ -34,10 +34,9 @@ int main(int argc, char *argv[])
   bindPort(server, trackerServer);
 
   fprintf(
-    stderr,
-    "Waiting for data on port UDP %u\n",
-    TRACKER_SERVER_PORT
-  );
+      stderr,
+      "Waiting for data on port UDP %u\n",
+      TRACKER_SERVER_PORT);
 
   // server infinite loop
   while (1)
@@ -50,13 +49,12 @@ int main(int argc, char *argv[])
 
     int clientAddrLen = sizeof(clientAddr);
     int fileNameWasReceived = recvfrom(
-      server,
-      fileName,
-      MAX_FILENAME_LENGTH,
-      0,
-      (struct sockaddr *) &clientAddr,
-      &clientAddrLen
-    );
+        server,
+        fileName,
+        MAX_FILENAME_LENGTH,
+        0,
+        (struct sockaddr *)&clientAddr,
+        &clientAddrLen);
 
     printf("Received file name: %s\n", fileName);
 
