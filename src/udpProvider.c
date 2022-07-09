@@ -1,5 +1,5 @@
 /*
-  Compilar - gcc src/udpProvider.c src/verify.c -o udpProvider -lm
+  Compilar - gcc src/udpProvider.c src/utilities.c -o udpProvider -lm
   Executar - ./udpProvider
 */
 
@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <dirent.h>
 
 #include "utilities.h"
 
@@ -22,6 +23,7 @@
 #define CLIENT_PORT 3001
 #define PROVIDER_PORT 3002
 #define TRACKER_SERVER_PORT 1500
+#define TRACKER_SERVER_IP "127.0.0.1"
 
 int main()
 {
@@ -62,6 +64,25 @@ int main()
 
       "Waiting for data on port UDP %u\n",
       PROVIDER_PORT);
+
+  // paga todos os arquivo do diretorio file e manda para o servidor rastreador
+  struct sockaddr_in trackerServerAddr;
+  struct hostent *trackerHost;
+  // get server IP address (no check if input is IP address or DNS name
+  trackerHost = gethostbyname(TRACKER_SERVER_IP);
+  if (trackerHost == NULL)
+  {
+    printf("Nao foi possivel definir o host '%s'\n", TRACKER_SERVER_IP);
+    exit(1);
+  }
+
+  trackerServerAddr.sin_family = trackerHost->h_addrtype;
+  memcpy(
+      (char *)&trackerServerAddr.sin_addr.s_addr,
+      trackerHost->h_addr_list[0],
+      trackerHost->h_length);
+
+  trackerServerAddr.sin_port = htons(TRACKER_SERVER_PORT); 
 
   /* server infinite loop */
   while (1)
@@ -230,9 +251,9 @@ int main()
         (struct sockaddr *)&clientAddr,
         sizeof(clientAddr));
 
-    //printf("Sending package %d\n", package.sequenceNumber);
-    //printf("Package size: %d\n", package.dataSize);
-    //printf("Package: %s\n", package.data);
+    // printf("Sending package %d\n", package.sequenceNumber);
+    // printf("Package size: %d\n", package.dataSize);
+    // printf("Package: %s\n", package.data);
 
     //  Reseta o temporizador
     timeVal.tv_sec = 0; //  5 segundos

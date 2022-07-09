@@ -1,5 +1,5 @@
 /*
-  Compilar - gcc src/udpClient.c -o udpClient -lm
+  Compilar - gcc src/udpClient.c src/utilities.c -o udpClient -lm
   Executar - ./udpClient
 */
 
@@ -43,7 +43,7 @@ int main()
   server = socket(AF_INET, SOCK_DGRAM, 0); // Cria um socket UDP
   if (server < 0)
   {
-    fprintf(stderr, "Cannot open socket\n");
+    printf("Nao foi possivel definir o socket\n");
     exit(1);
   }
 
@@ -55,11 +55,11 @@ int main()
 
   if (portIsBind < 0)
   {
-    fprintf(stderr, "Cannot bind port\n");
+    printf("Nao foi possivel definir a porta\n");
     exit(1);
   }
 
-  fprintf(stderr, "Running on port %d\n", CLIENT_PORT);
+  printf("Executando na porta %d\n", CLIENT_PORT);
 
   struct sockaddr_in trackerServerAddr;
   struct hostent *trackerHost;
@@ -67,7 +67,7 @@ int main()
   trackerHost = gethostbyname(TRACKER_SERVER_IP);
   if (trackerHost == NULL)
   {
-    fprintf(stderr, "Unknown host '%s'\n", TRACKER_SERVER_IP);
+    printf("Nao foi possivel definir o host '%s'\n", TRACKER_SERVER_IP);
     exit(1);
   }
 
@@ -82,7 +82,7 @@ int main()
   while (1)
   {
     // O usuário insere o arquivo desejado
-    fprintf(stderr, "Digite o nome do arquivo: ");
+    printf("Digite o nome do arquivo: ");
     char fileName[100];
     scanf("%s", fileName);
 
@@ -97,7 +97,7 @@ int main()
 
     if (messageIsSended < 0)
     {
-      fprintf(stderr, "Cannot send data\n");
+      printf("Nao foi possivel enviar o nome do arquivo\n");
       close(server);
       exit(1);
     }
@@ -119,18 +119,19 @@ int main()
 
     if (providerIpWasReceived < 0)
     {
-      fprintf(stderr, "Cannot receive data\n");
+      printf("Nao foi possivel receber o endereço do provedor\n");
+      continue;
     }
 
     if (strcmp(providerIp, "404") == 0)
     {
-      fprintf(stderr, "File does not exists in our database\n");
+      printf("Arquivo nao existe no banco de dados\n");  
       close(server);
       continue;
     }
 
-    fprintf(stderr, "\n\nO arquivo %s está disponível no cliente %s\n", fileName, providerIp);
-    fprintf(stderr, "Fazendo conexão com o cliente %s ...\n\n", providerIp);
+    printf("\n\nO arquivo %s esta disponível no cliente %s\n", fileName, providerIp);
+    printf("Fazendo conexao com o cliente %s...\n\n", providerIp);
 
     // Solicita o envio do arquivo para o usuário provedor
     // Envia o nome do arquivo requerido
@@ -140,7 +141,7 @@ int main()
     providerHost = gethostbyname(providerIp);
     if (providerHost == NULL)
     {
-      fprintf(stderr, "Unknown host '%s'\n", providerIp);
+      printf("Nao foi possivel definir um host '%s'\n", providerIp);
       continue;
     }
 
@@ -165,7 +166,7 @@ int main()
 
     if (messageIsSended < 0)
     {
-      fprintf(stderr, "Cannot send data\n");
+      printf("Nao foi possivel informar o nome do arquivo\n");
       continue;
     }
 
@@ -180,9 +181,9 @@ int main()
         (struct sockaddr *)&providerAddr,
         &trackerSize);
 
-    fprintf(stderr, "Arquivo %s com tamanho %d\n", fileName, fileSize);
+    printf("Arquivo %s com tamanho %d\n", fileName, fileSize);
 
-    fprintf(stderr, "\n\nSalvando arquivo %s ...\n\n", fileName);
+    printf("\n\nSalvando arquivo %s ...\n\n", fileName);
 
     char *basePath = "./tmp/";
     char *filePath = malloc(strlen(basePath) + strlen(fileName) + 1);
@@ -196,7 +197,7 @@ int main()
 
     if (destinyFile == NULL)
     {
-      fprintf(stderr, "Cannot open file %s\n", filePath);
+      printf("Nao foi possivel abrir o arquivo %s\n", filePath);
       continue;
     }
 
@@ -211,7 +212,8 @@ int main()
     //  Armazena o ultimo numero de sequencia
     int lastSequenceNumber = -1;
 
-    for (int i = 0; 1; i++)
+    float totalReceived = 0;
+    while (1)
     {
       struct package package;
 
@@ -288,69 +290,30 @@ int main()
       //  Grava o pacote no arquivo
       fwrite(package.data, 1, package.dataSize, destinyFile);
 
-      fprintf(stderr, "Recebido %d bytes\n\n", package.dataSize);
+      totalReceived += floor(package.dataSize);
+      printf("\n%.2f\% recebido\n", (totalReceived / fileSize) * 100);
 
-      // if (destinyFile == NULL)
-      // {
-      //   fprintf(stderr, "File transfer failed\n");
-      //   exit(EXIT_FAILURE);
-      // } // exit(EXIT_FAILURE);
+      // Avisa para o servidor rastreador que recebeu o arquvo
+      messageIsSended = sendto(
+          server,
+          fileName,
+          strlen(fileName),
+          0,
+          (struct sockaddr *)&trackerServerAddr,
+          sizeof(trackerServerAddr));
 
-      // for (int i = 0; i < strlen(fileBuffer); i++)
-      // {
-      //   fputc(fileBuffer[i], destinyFile);
-      // }
-
-      // // process
-      // if (recvFile(fileBuffer, MAX_FILE_BUFFER))
-      // {
-      //   break;
-      // }
+      if (messageIsSended < 0)
+      {
+        printf("Nao foi possivel informar que o arquivo foi recebido\n");
+        continue;
+      }
     }
 
     fclose(destinyFile);
 
-    fprintf(stderr, "Arquivo recebido com sucesso!\n");
+    printf("Arquivo recebido com sucesso\n");
 
-    // int fileBufferWasReceived = recvfrom(
-    //     server,
-    //     fileBuffer,
-    //     10,
-    //     0,
-    //     (struct sockaddr *)&providerAddr,
-    //     &providerSize);
-    // if (fileBufferWasReceived < 0)
-    // {
-    //   fprintf(stderr, "Cannot receive data\n");
-    //   continue;
-    // }
-
-    // Salva o arquivo
-
-    printf("Save file successfully.\n");
-    // fclose(destinyFile);
-
-    // char *path = "./files";
-    // char *pathWithFileName = malloc(strlen(path) + strlen(fileName) + 1);
-    // strcpy(pathWithFileName, path);
-
-    // printf("\n\n%s\n\n", pathWithFileName);
-
-    // FILE *destinyFile = fopen(pathWithFileName, "wb");
-
-    // if (destinyFile == NULL)
-    // {
-    //   fprintf(stderr, "File transfer failed\n");
-    //   exit(EXIT_FAILURE);
-    // } // exit(EXIT_FAILURE);
-
-    // for (int i = 0; i < originFileLength; i++)
-    // {
-    //   fputc(fgetc(originFile), destinyFile);
-    // }
-
-    // printf("File copied successfully.\n");
-    // fclose(destinyFile);
+    printf("Arquivo salvo com sucesso\n");
   }
 
   return 0;
