@@ -185,7 +185,7 @@ int main()
 
     printf("\n\nSalvando arquivo %s...\n\n", fileName);
 
-    char *basePath = "./tmp/";
+    char *basePath = "./files/";
     char *filePath = malloc(strlen(basePath) + strlen(fileName) + 1);
     strcpy(filePath, basePath);
     strcat(filePath, fileName);
