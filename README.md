@@ -1,21 +1,42 @@
-# socket
+<b>Requisitos:</b><br/>
+Banco de Dados Postgres intalado ou através do Docker com docker-compose<br/>
+GCC Compiler<br/>
+Linux OS<br/>
 
-# Primeira Etapa
+<br/>
+Caso opte por utilizar o Docker e o docker-compose siga os seguintes passos. <br/>
+Para criar o container que será usado como banco de dados use o comando: <br/>
 
-- [ ]  Criar o código do cliente
-- [ ]  Criar o código do servidor rastreador
-- [ ]  Fazer o cliente comunicar com o servidor rastreador e devolver o ip de outro usuário que possua o arquivo
+```
+docker-compose up -d
+```
 
-# Segunda Etapa
+Com o banco de dados online, crie as tabelas e insira um usuário e um arquivo, esse arquivo precisa estar na pasta files na raiz do projeto, como exemplo temos o arquivo teste.txt dentro da pasta files. <br/>
+Após isso configure as variáveis de conexão com o banco de dados nos parametros da função "connection()" no arquivo "db.c".<br/>
 
-- [ ]  Fazer com que os usuários transfiram arquivos entre sí
-- [ ]  Um manda um buffer
-- [ ]  O outro escreve o arquivo de acordo com o buffer
+<strong>Lembrando que é necessaŕio ter um usuário raiz com seus arquivos para serem compartilhados com os outros usuários</strong><br/>
 
-# Terceira Etapa
+A seguir se apresentam os comandos de compilação de cada arquivo. <br/>
+Arquivo <b>udpServer.c</b>: 
+```
+ Compilar: gcc src/udpServer.c src/db.c src/communication.c -o udpServer -lpq
+ Executar: ./udpServer
+```
+<br/>
+Arquivo <b>udpProvider.c</b>: 
 
-- [ ]  Implementar requisitos de segurança a nível de aplicação
-- [ ]  Soma de verificação
-- [ ]  Número de sequência
-- [ ]  Temporizador
-- [ ]  Pacote de reconhecimento
+```
+ Compilar: gcc src/udpProvider.c src/utilities.c -o udpProvider -lm
+ Executar: ./udpProvider
+```
+
+<br/>
+Arquivo <b>udpClient.c</b>: 
+
+```
+ Compilar: gcc src/udpClient.c src/utilities.c -o udpClient -lm
+ Executar: ./udpClient
+```
+
+Lembrando que as constantes presentes em cada arquivo devem ser alteradas afim de se obter o resultado esperado.
+
