@@ -183,15 +183,12 @@ int main()
 
     printf("Arquivo %s com tamanho %d\n", fileName, fileSize);
 
-    printf("\n\nSalvando arquivo %s ...\n\n", fileName);
+    printf("\n\nSalvando arquivo %s...\n\n", fileName);
 
     char *basePath = "./tmp/";
     char *filePath = malloc(strlen(basePath) + strlen(fileName) + 1);
     strcpy(filePath, basePath);
     strcat(filePath, fileName);
-
-    // limpa a variavel filename
-    memset(fileName, 0x0, MAX_FILENAME_LENGTH);
 
     FILE *destinyFile = fopen(filePath, "wb");
 
@@ -292,24 +289,27 @@ int main()
 
       totalReceived += floor(package.dataSize);
       printf("\n%.2f\% recebido\n", (totalReceived / fileSize) * 100);
+    }
+    
+    fclose(destinyFile);
 
-      // Avisa para o servidor rastreador que recebeu o arquvo
-      messageIsSended = sendto(
-          server,
-          fileName,
-          strlen(fileName),
-          0,
-          (struct sockaddr *)&trackerServerAddr,
-          sizeof(trackerServerAddr));
+    // Avisa para o servidor rastreador que recebeu o arquvo
+    messageIsSended = sendto(
+        server,
+        fileName,
+        strlen(fileName),
+        0,
+        (struct sockaddr *)&trackerServerAddr,
+        sizeof(trackerServerAddr));
 
-      if (messageIsSended < 0)
-      {
-        printf("Nao foi possivel informar que o arquivo foi recebido\n");
-        continue;
-      }
+    if (messageIsSended < 0)
+    {
+      printf("Nao foi possivel informar que o arquivo foi recebido\n");
+      continue;
     }
 
-    fclose(destinyFile);
+    // limpa variavel do nome do arquivo
+    memset(fileName, 0x0, MAX_FILENAME_LENGTH);
 
     printf("Arquivo recebido com sucesso\n");
 

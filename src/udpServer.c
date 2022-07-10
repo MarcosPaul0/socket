@@ -56,11 +56,11 @@ int main(int argc, char *argv[])
         (struct sockaddr *)&clientAddr,
         &clientAddrLen);
 
-    printf("Received file name: %s\n", fileName);
+    printf("Cliente buscando o arquivo: %s\n", fileName);
 
     if (fileNameWasReceived < 0)
     {
-      printf("Cannot receive data \n");
+      printf("Nao foi possivel receber o nome do arquivo\n");
       continue; // reestarta o loop
     }
 
@@ -75,11 +75,11 @@ int main(int argc, char *argv[])
     // Procura o usuário que possui o arquivo informado
     char *providerUserAddress = findReceiverUserIpByFileName(pgConnection, fileName);
 
-    printf("Provider user address: %s\n", providerUserAddress);
+    printf("Endereco do provedor: %s\n", providerUserAddress);
 
     if (providerUserAddress == NULL)
     {
-      printf("File does not exists in our database\n");
+      printf("Arquivo nao existe no banco de dados\n");
       sendto(server, "404", strlen("404"), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
       continue;
     }
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 
     if (messageIsSended < 0)
     {
-      printf("Cannot send data \n");
+      printf("Nao foi possivel enviar o endereco do provedor\n");
       continue; // reestarta o loop
     }
 
@@ -105,9 +105,11 @@ int main(int argc, char *argv[])
 
     if (messageIsSended < 0)
     {
-      printf("Cannot receive data \n");
-      continue; // reestarta o loop
+      printf("Nao foi possivel receber a menssagem de arquivo recebido do cliente\n");
+      continue; // restarta o loop
     }
+
+    printf("Cliente recebeu o arquivo: %s\n", fileName);
 
     // Cadastra o arquivo no banco de dados
     // Verifica se o cliente já possui um arquivo com o mesmo nome

@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <dirent.h>
 
 #include "utilities.h"
 
@@ -39,7 +38,7 @@ int main()
 
   if (server < 0)
   {
-    printf("cannot open socket \n");
+    printf("Nao foi possivel abrir o socket \n");
     // printf("%s: cannot open socket \n");
     exit(1);
   }
@@ -54,20 +53,18 @@ int main()
   if (portIsBind < 0)
   {
     printf(
-
-        "Cannot bind port number %u\n",
+        "Nao foi possivel usar a porta %u\n",
         PROVIDER_PORT);
     exit(1);
   }
 
   printf(
-
-      "Waiting for data on port UDP %u\n",
+      "Eseperando pelo nome do arquivo na porta %u\n",
       PROVIDER_PORT);
 
-  // paga todos os arquivo do diretorio file e manda para o servidor rastreador
   struct sockaddr_in trackerServerAddr;
   struct hostent *trackerHost;
+
   // get server IP address (no check if input is IP address or DNS name
   trackerHost = gethostbyname(TRACKER_SERVER_IP);
   if (trackerHost == NULL)
@@ -82,7 +79,7 @@ int main()
       trackerHost->h_addr_list[0],
       trackerHost->h_length);
 
-  trackerServerAddr.sin_port = htons(TRACKER_SERVER_PORT); 
+  trackerServerAddr.sin_port = htons(TRACKER_SERVER_PORT);
 
   /* server infinite loop */
   while (1)
