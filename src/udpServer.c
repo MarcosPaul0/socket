@@ -24,6 +24,7 @@
 int main(int argc, char *argv[])
 {
   PGconn *pgConnection = connection();
+  int messageIsSended;
 
   struct sockaddr_in trackerServer = createClient(TRACKER_SERVER_PORT);
 
@@ -33,9 +34,8 @@ int main(int argc, char *argv[])
   // bind local server port
   bindPort(server, trackerServer);
 
-  fprintf(
-      stderr,
-      "Waiting for data on port UDP %u\n",
+  printf(
+      "Esperando pelo dado na porta %u\n",
       TRACKER_SERVER_PORT);
 
   // server infinite loop
@@ -56,11 +56,11 @@ int main(int argc, char *argv[])
         (struct sockaddr *)&clientAddr,
         &clientAddrLen);
 
-    printf("Received file name: %s\n", fileName);
+    printf("Cliente buscando o arquivo: %s\n", fileName);
 
     if (fileNameWasReceived < 0)
     {
-      fprintf(stderr, "Cannot receive data \n");
+      printf("Nao foi possivel receber o nome do arquivo\n");
       continue; // reestarta o loop
     }
 
@@ -75,25 +75,50 @@ int main(int argc, char *argv[])
     // Procura o usuário que possui o arquivo informado
     char *providerUserAddress = findReceiverUserIpByFileName(pgConnection, fileName);
 
-    printf("Provider user address: %s\n", providerUserAddress);
+    printf("Endereco do provedor: %s\n", providerUserAddress);
 
     if (providerUserAddress == NULL)
     {
-      fprintf(stderr, "File does not exists in our database\n");
+      printf("Arquivo nao existe no banco de dados\n");
       sendto(server, "404", strlen("404"), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
       continue;
     }
 
     // Retorna o endereço de ip do usuário que possui o arquivo
-    sendTo(server, providerUserAddress, clientAddr);
+    messageIsSended = sendTo(server, providerUserAddress, clientAddr);
 
-    // if (isSended < 0)
-    // {
-    //   fprintf(stderr, "Cannot send data \n");
-    //   continue; // reestarta o loop
-    // }
-    // // Caso a tranferência seja realizada com sucesso, registra que o usuário também possui o arquivo
-    // insertNewFileToUser(pgConnection, receiverUserIp, fileName);
+    if (messageIsSended < 0)
+    {
+      printf("Nao foi possivel enviar o endereco do provedor\n");
+      continue; // reestarta o loop
+    }
+
+    // Espera a menssagem do cliente que o arquivo foi recebibo
+    memset(fileName, 0x0, MAX_FILENAME_LENGTH);
+    messageIsSended = recvfrom(
+        server,
+        fileName,
+        MAX_FILENAME_LENGTH,
+        0,
+        (struct sockaddr *)&clientAddr,
+        &clientAddrLen);
+
+    if (messageIsSended < 0)
+    {
+      printf("Nao foi possivel receber a menssagem de arquivo recebido do cliente\n");
+      continue; // restarta o loop
+    }
+
+    printf("Cliente recebeu o arquivo: %s\n", fileName);
+
+    // Cadastra o arquivo no banco de dados
+    // Verifica se o cliente já possui um arquivo com o mesmo nome
+    char *fileId = findFileByUserIp(pgConnection, fileName, inet_ntoa(clientAddr.sin_addr));
+
+    if (fileId == NULL)
+    {
+      insertNewFileToUser(pgConnection, inet_ntoa(clientAddr.sin_addr), fileName);
+    }
   } /* end of server infinite loop */
 
   return 0;
